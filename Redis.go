@@ -101,3 +101,4 @@ func redisinit(server, password string, maxIdle, idleTimeout, maxActive int, opt
 		IdleTimeout: time.Duration(idleTimeout) * time.Second,
 	}
 }
+
