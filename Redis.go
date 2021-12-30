@@ -2,11 +2,17 @@ package Redisgogogo
 
 import (
 	"context"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/garyburd/redigo/redis"
+)
+
+var (
+	serverLocalPid = os.Getpid()
+	logFormat      = "2006/01/02 15:04:05"
 )
 
 type Redis struct {
