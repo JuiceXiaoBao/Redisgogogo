@@ -1,6 +1,7 @@
 package Redisgogogo
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -13,10 +14,10 @@ import (
 	opentracinglog "github.com/opentracing/opentracing-go/log"
 )
 
-func (r *Redis) do(cmd string, f func(interface{}, error) (interface{}, error), args ...interface{}) (reply interface{}, err error) {
+func (r *ctxRedis) do(cmd string, f func(interface{}, error) (interface{}, error), args ...interface{}) (reply interface{}, err error) {
 	var (
-		stCode   = redisSuccess
-		count    = 0
+		stCode = redisSuccess
+		count  = 0
 		//now      = time.Now()
 		address  = r.opts.Addr
 		firstArg interface{}
@@ -88,11 +89,35 @@ retry1:
 	}
 
 	LOGGER.Infof("%d|redisclient|%s|retry-%d|%s|%s|%v|%v|%s|%d", serverLocalPid, r.opts.ServerName, count,
-		traceid, cmd, firstArg, err, address,stCode)
+		traceid, cmd, firstArg, err, address, stCode)
 	return
 }
 
 func (r *ctxRedis) randomDuration(n int64) time.Duration {
 	s := rand.NewSource(r.lastTime)
 	return time.Duration(rand.New(s).Int63n(n) + 1)
+}
+
+// Do 函数为通用的函数，可以执行任何redis服务器支持的命令
+func (r *ctxRedis) Do(cmd string, args ...interface{}) (reply interface{}, err error) {
+	return r.do(cmd, nil, args)
+}
+
+// DoCtx DoCtx函数与Do函数相比，增加了一个context参数，提供了超时的功能
+func (r *ctxRedis) DoCtx(ctx context.Context, cmd string, args ...interface{}) (interface{}, error) {
+	var (
+		ch    = make(chan struct{})
+		reply interface{}
+		err   error
+	)
+	go func() {
+		defer close(ch)
+		reply, err = r.do(cmd, nil, args...)
+	}()
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-ch:
+		return reply, err
+	}
 }
