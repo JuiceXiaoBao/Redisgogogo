@@ -1,4 +1,4 @@
-module Redisgogogo
+module github.com/JuiceXiaoBao/Redisgogogo
 
 go 1.16
 
